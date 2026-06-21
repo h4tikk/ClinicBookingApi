@@ -1,6 +1,6 @@
 namespace ClinicBooking.Application.Appointments;
 
-public record NewAppoint(
+public record NewAppointment(
     Guid Id,
     Guid PatientId,
     Guid DoctorId,

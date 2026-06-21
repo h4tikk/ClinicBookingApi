@@ -1,6 +1,6 @@
 namespace ClinicBooking.Infrastructure.Persistence.Entities;
 
-public class Speciality
+public class Specialty
 {
     public Guid Id { get; set; }
     public required string Name { get; set; }

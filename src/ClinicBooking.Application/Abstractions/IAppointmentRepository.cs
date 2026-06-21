@@ -1,3 +1,5 @@
+using ClinicBooking.Application.Appointments;
+
 namespace ClinicBooking.Application.Absractions;
 
 public interface IAppointmentRepository

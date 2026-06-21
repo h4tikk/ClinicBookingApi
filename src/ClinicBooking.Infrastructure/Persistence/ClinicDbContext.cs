@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using ClinicBooking.Infrastructure.Persistence.Entities;
 
+namespace ClinicBooking.Infrastructure.Persistence;
+
 public class ClinicDbContext : DbContext
 {
     public ClinicDbContext(DbContextOptions<ClinicDbContext> options) 
@@ -8,7 +10,7 @@ public class ClinicDbContext : DbContext
     
     public DbSet<Patient> Patients => Set<Patient>();
     public DbSet<Doctor> Doctors => Set<Doctor>();
-    public DbSet<Speciality> Specialities => Set<Speciality>();
+    public DbSet<Specialty> Specialties => Set<Specialty>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -21,7 +23,7 @@ public class ClinicDbContext : DbContext
             builder.HasIndex(p => p.Email).IsUnique();
         });
 
-        modelBuilder.Entity<Speciality>(builder =>
+        modelBuilder.Entity<Specialty>(builder =>
         {
             builder.HasKey(s => s.Id);
             builder.Property(s => s.Name).HasMaxLength(100);
@@ -32,8 +34,8 @@ public class ClinicDbContext : DbContext
         {
            builder.HasKey(d => d.Id);
            builder.Property(d => d.FullName).HasMaxLength(200);
-           builder.HasOne(d => d.Speciality).WithMany().HasForeignKey(d => d.SpecialityId);
-           builder.HasIndex(d => new {d.SpecialityId, d.IsActive});
+           builder.HasOne(d => d.Specialty).WithMany().HasForeignKey(d => d.SpecialtyId);
+           builder.HasIndex(d => new {d.SpecialtyId, d.IsActive});
 
         });
 
@@ -45,7 +47,9 @@ public class ClinicDbContext : DbContext
             builder.Property(a => a.Status).HasConversion<string>().HasMaxLength(50);
             builder.Property(a => a.CancellationReason).HasMaxLength(500);
             builder.HasIndex(a => new {a.DoctorId, a.StartsAt, a.EndsAt});
-            builder.Property(a => a.RowVersion).IsRowVersion();
+            builder.Property(a => a.RowVersion).IsRowVersion()
+                .HasColumnName("xmin")
+                .HasColumnType("xid");
         });
     }
 
