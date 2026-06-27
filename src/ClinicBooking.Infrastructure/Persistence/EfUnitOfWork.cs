@@ -1,4 +1,4 @@
-using ClinicBooking.Application.Absractions;
+using ClinicBooking.Application.Abstractions;
 
 namespace ClinicBooking.Infrastructure.Persistence;
 

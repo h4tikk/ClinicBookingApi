@@ -1,4 +1,4 @@
-using ClinicBooking.Application.Absractions;
+using ClinicBooking.Application.Abstractions;
 
 namespace ClinicBooking.Application.Appointments;
 
@@ -30,7 +30,7 @@ public class AppointmentService
         if(req.StartsAt <= now)
             return BookAppointmentResult.AppointmentInPast();
         
-        var hasOverlap = await _appointmentRepo.HasOverlappingAppointmentAsync(
+        var hasOverlap = await _appointmentRepo.HasOverlappingAppointment(
             req.DoctorId,
             req.StartsAt,
             req.EndsAt,
@@ -46,7 +46,7 @@ public class AppointmentService
             StartsAt: req.StartsAt,
             EndsAt: req.EndsAt);
 
-        await _appointmentRepo.AddAsync(appointment, cancellationToken);
+        await _appointmentRepo.Add(appointment, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return BookAppointmentResult.Success(appointment.Id); 

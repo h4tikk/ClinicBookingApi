@@ -1,4 +1,4 @@
-namespace ClinicBooking.Application.Absractions;
+namespace ClinicBooking.Application.Abstractions;
 
 public interface IUnitOfWork
 {

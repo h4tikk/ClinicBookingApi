@@ -1,18 +1,18 @@
 using ClinicBooking.Application.Appointments;
 
-namespace ClinicBooking.Application.Absractions;
+namespace ClinicBooking.Application.Abstractions;
 
 public interface IAppointmentRepository
 {
-    Task<bool> HasOverlappingAppointmentAsync(
+    Task<bool> HasOverlappingAppointment(
         Guid doctorId,
         DateTimeOffset startsAt,
         DateTimeOffset endsAt,
         CancellationToken cancellationToken);
 
-    Task AddAsync(NewAppointment appointment, CancellationToken cancellationToken);
+    Task Add(NewAppointment appointment, CancellationToken cancellationToken);
 
-    Task<AppointmentForUpdate?> GetForUpdateAsync(
+    Task<AppointmentForUpdate?> GetForUpdate(
         Guid appointmentId,
         CancellationToken cancellationToken);
 

@@ -1,4 +1,4 @@
-using ClinicBooking.Application.Absractions;
+using ClinicBooking.Application.Abstractions;
 using ClinicBooking.Application.Appointments;
 using ClinicBooking.Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +14,7 @@ public class AppointmentRepository : IAppointmentRepository
         _context = context;
     }
 
-    public async Task AddAsync(NewAppointment appointment, CancellationToken cancellationToken)
+    public async Task Add(NewAppointment appointment, CancellationToken cancellationToken)
     {
         var entity = new Appointment
         {
@@ -54,7 +54,7 @@ public class AppointmentRepository : IAppointmentRepository
         return true;
     }
 
-    public async Task<AppointmentForUpdate?> GetForUpdateAsync(Guid appointmentId, CancellationToken cancellationToken)
+    public async Task<AppointmentForUpdate?> GetForUpdate(Guid appointmentId, CancellationToken cancellationToken)
     {
         var appointment = await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId, cancellationToken);
         if(appointment is null)
@@ -67,7 +67,7 @@ public class AppointmentRepository : IAppointmentRepository
         };
     }
 
-    public async Task<bool> HasOverlappingAppointmentAsync(Guid doctorId, DateTimeOffset startsAt, DateTimeOffset endsAt, CancellationToken cancellationToken)
+    public async Task<bool> HasOverlappingAppointment(Guid doctorId, DateTimeOffset startsAt, DateTimeOffset endsAt, CancellationToken cancellationToken)
     {
         return await _context.Appointments.AnyAsync(a =>
             a.DoctorId == doctorId &&
