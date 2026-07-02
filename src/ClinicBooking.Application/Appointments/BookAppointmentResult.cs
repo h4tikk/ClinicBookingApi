@@ -1,8 +1,9 @@
 namespace ClinicBooking.Application.Appointments;
 
+
 public class BookAppointmentResult
 {
-    private BookAppointmentResult(BookAppointmentStatus status,
+    public BookAppointmentResult(BookAppointmentStatus status,
         Guid? appointmentId = null)
     {
         Status = status;

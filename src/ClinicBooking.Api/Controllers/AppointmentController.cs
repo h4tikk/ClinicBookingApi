@@ -15,10 +15,6 @@ public sealed class AppointmentController : ControllerBase
         _queryService = queryService;
     }
     [HttpPost]
-    [ProducesResponseType<BookAppointmentResponse>(StatusCodes.Status201Created)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-
     public async Task<ActionResult<BookAppointmentResponse>> Book(
         BookAppointmentRequest request,
         CancellationToken cancellationToken)
@@ -31,44 +27,41 @@ public sealed class AppointmentController : ControllerBase
                 new { id = result.AppointmentId },
                 new BookAppointmentResponse(result.AppointmentId!.Value)),
 
-            BookAppointmentStatus.InvalidTimeRange => BadRequest(new ProblemDetails
-            {
-                Title = "Invalid time range",
-                Detail = "StartsAt must be earlier than EndsAt.",
-                Status = StatusCodes.Status400BadRequest
-            }),
+            BookAppointmentStatus.PatientNotFound => BadRequestProblem(
+                "Patient not found",
+                "The selected patient does not exist."),
 
-            BookAppointmentStatus.AppointmentInPast => BadRequest(new ProblemDetails
-            {
-                Title = "Appointment is in the past",
-                Detail = "Appointment start time must be in the future.",
-                Status = StatusCodes.Status400BadRequest
-            }),
-            BookAppointmentStatus.DoctorIsBusy => Conflict(new ProblemDetails
-            {
-                Title = "Doctor is busy",
-                Detail = "The doctor already has an appointment in this time range.",
-                Status = StatusCodes.Status409Conflict
-            }),
+            BookAppointmentStatus.DoctorNotFound => BadRequestProblem(
+                "Doctor not found",
+                "The selected doctor does not exist."),
+
+            BookAppointmentStatus.DoctorIsInactive => ConflictProblem(
+                "Doctor is inactive",
+                "Appointments cannot be booked for an inactive doctor."),
+
+            BookAppointmentStatus.DoctorIsBusy => ConflictProblem(
+                "Doctor is busy",
+                "The doctor already has an appointment in this time range."),
+
+            BookAppointmentStatus.InvalidTimeRange => BadRequestProblem(
+                "Invalid time range",
+                "StartsAt must be earlier than EndsAt."),
+
+            BookAppointmentStatus.AppointmentInPast => BadRequestProblem(
+                "Appointment is in the past",
+                "The appointment must start in the future."),
 
             _ => Problem()
         };
     }
     [HttpGet("{id:guid}")]
-    [ProducesResponseType<AppointmentDetailsResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AppointmentDetailsResponse>> GetById(
         Guid id,
         CancellationToken cancellationToken)
     {
         var appointment = await _queryService.GetByIdAsync(id, cancellationToken);
 
-        if (appointment is null)
-        {
-            return NotFound();
-        }
-
-        return Ok(appointment);
+        return appointment is null ? NotFound() : Ok(appointment);
     }
 
     [HttpGet("doctor/{doctorId:guid}/schedule")]
@@ -79,5 +72,64 @@ public sealed class AppointmentController : ControllerBase
     {
         var schedule = await _queryService.GetDoctorScheduleAsync(doctorId, date, cancellationToken);
         return Ok(schedule);
+    }
+
+    [HttpPost("{id:guid}/confirm")]
+    public async Task<IActionResult> Confirm(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _service.Confirm(id, cancellationToken);
+        return MapStatusResult(result);
+    }
+
+    [HttpPost("{id:guid}/cancel")]
+    public async Task<IActionResult> Cancel(Guid id, CancelAppointmentRequest req, CancellationToken cancellationToken)
+    {
+        var result = await _service.Cancel(id, req, cancellationToken);
+        return MapStatusResult(result);
+    }
+
+    [HttpPost("{id:guid}/complete")]
+    public async Task<IActionResult> Complete(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _service.Complete(id, cancellationToken);
+        if (result == ChangeAppointmentStatus.AppointmentNotFound)
+        {
+            return ConflictProblem(
+                "Appointment has not ended",
+                "An appointment can be completed only after its end time");
+        }
+        return MapStatusResult(result);
+    }
+    
+    private IActionResult MapStatusResult(ChangeAppointmentStatus status)
+    {
+        return status switch
+        {
+            ChangeAppointmentStatus.Success => NoContent(),
+            ChangeAppointmentStatus.AppointmentNotFound => NotFound(),
+            ChangeAppointmentStatus.InvalidState => ConflictProblem(
+                "Invalid appointment state",
+                "This operation is not allowed for the current appointment state."),
+            ChangeAppointmentStatus.TooEarlyToComplete => ConflictProblem(
+                "Appointment has not ended",
+                "An appointment can be completed only after its end time."),
+            _ => Problem()
+        };
+    }
+
+    private ObjectResult BadRequestProblem(string title, string detail)
+    {
+        return Problem(
+            title: title,
+            detail: detail,
+            statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    private ObjectResult ConflictProblem(string title, string detail)
+    {
+        return Problem(
+            title: title,
+            detail: detail,
+            statusCode: StatusCodes.Status409Conflict);
     }
 }

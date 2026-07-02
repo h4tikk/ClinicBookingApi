@@ -14,5 +14,5 @@ public class Appointment
     public AppointmentStatus Status { get; set; }
     public string? CancellationReason { get; set; }
 
-    public byte[] RowVersion { get; set; } = [];
+    public uint Version { get; set; }
 }

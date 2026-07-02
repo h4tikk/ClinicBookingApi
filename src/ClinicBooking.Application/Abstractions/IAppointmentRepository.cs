@@ -16,12 +16,14 @@ public interface IAppointmentRepository
         Guid appointmentId,
         CancellationToken cancellationToken);
 
-    Task<bool> Confirm(
+    Task<AppointmentSnapshot?> GetSnapshot(
         Guid appointmentId,
         CancellationToken cancellationToken);
 
-    Task<bool> Cancel(
+    Task<bool> SetStatus(
         Guid appointmentId,
-        string reason,
+        AppointmentState expectedStatus,
+        AppointmentState status,
+        string? cancellationReason,
         CancellationToken cancellationToken);
 }

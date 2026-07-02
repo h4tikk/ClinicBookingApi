@@ -1,23 +1,24 @@
-using Microsoft.AspNetCore.Mvc;
 using ClinicBooking.Application.Patients;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ClinicBooking.Api.Controllers;
+
 [ApiController]
 [Route("api/patients")]
-public class PatientController : ControllerBase
+public sealed class PatientController : ControllerBase
 {
-    private readonly IPatientQueryService _queryService;
     private readonly PatientService _service;
+    private readonly IPatientQueryService _queries;
 
-    public PatientController(IPatientQueryService queryService, PatientService patientService)
+    public PatientController(
+        PatientService service,
+        IPatientQueryService queries)
     {
-        _queryService = queryService;
-        _service = patientService;
+        _service = service;
+        _queries = queries;
     }
-    
+
     [HttpPost]
-    [ProducesResponseType<CreatePatientResponse>(StatusCodes.Status201Created)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CreatePatientResponse>> Create(
         CreatePatientRequest request,
         CancellationToken cancellationToken)
@@ -39,18 +40,49 @@ public class PatientController : ControllerBase
             new { id = result.PatientId },
             new CreatePatientResponse(result.PatientId!.Value));
     }
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<PatientDetailsResponse>> GetById(
         Guid id,
         CancellationToken cancellationToken)
     {
-        var patient = await _queryService.GetById(id, cancellationToken);
+        var patient = await _queries.GetById(id, cancellationToken);
+        return patient is null ? NotFound() : Ok(patient);
+    }
 
-        if (patient is null)
+    [HttpGet]
+    public async Task<ActionResult<PatientSearchResponse>> Search(
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _queries.Search(
+            new SearchPatientsQuery(search, page, pageSize),
+            cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(
+        Guid id,
+        UpdatePatientRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _service.Update(id, request, cancellationToken);
+
+        return result switch
         {
-            return NotFound();
-        }
-
-        return Ok(patient);
+            UpdatePatientStatus.Success => NoContent(),
+            UpdatePatientStatus.PatientNotFound => NotFound(),
+            UpdatePatientStatus.EmailAlreadyExists => Conflict(new ProblemDetails
+            {
+                Title = "Email already exists",
+                Detail = "Another patient already uses this email.",
+                Status = StatusCodes.Status409Conflict
+            }),
+            _ => Problem()
+        };
     }
 }

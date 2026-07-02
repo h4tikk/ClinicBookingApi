@@ -5,7 +5,7 @@ namespace ClinicBooking.Application.Abstractions;
 public interface IDoctorRepository
 {
     Task<bool> Exists(Guid doctorId, CancellationToken cancellationToken);
-    
+    Task<DoctorAvailability?> GetAvailability(Guid doctorId, CancellationToken cancellationToken);
     Task Add(NewDoctor doctor, CancellationToken cancellationToken);
     Task<bool> SetActivity(Guid doctorId, bool isActive, CancellationToken cancellationToken);
 }

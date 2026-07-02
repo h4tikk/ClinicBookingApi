@@ -33,4 +33,38 @@ public class PatientService
 
         return CreatePatientResult.Success(patient.Id);
     }
+
+    public async Task<UpdatePatientStatus> Update(
+        Guid patientId,
+        UpdatePatientRequest req,
+        CancellationToken cancellationToken)
+    {
+        var patientExists = await _patientRepo.Exists(
+            patientId, cancellationToken);
+
+        if (!patientExists)
+            return UpdatePatientStatus.PatientNotFound;
+        
+        var normilizedEmail = NormalizeEmail(req.Email);
+        
+        var emailExists = await _patientRepo.EmailExists(normilizedEmail, cancellationToken);
+        if (emailExists)
+            return UpdatePatientStatus.EmailAlreadyExists;
+
+        var updated = await _patientRepo.Update(new UpdatedPatient(
+            patientId,
+            req.FullName.Trim(),
+            normilizedEmail,
+            req.DateOfBirth), cancellationToken);
+        if (!updated) return UpdatePatientStatus.PatientNotFound;
+        
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        
+        return UpdatePatientStatus.Success;
+    }
+
+    private static string NormalizeEmail(string email)
+    {
+        return email.Trim().ToLowerInvariant();
+    }
 }

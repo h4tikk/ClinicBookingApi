@@ -18,6 +18,17 @@ public class DoctorRepository : IDoctorRepository
         return _context.Doctors.AnyAsync(d => d.Id == doctorId, cancellationToken);
     }
 
+    public Task<DoctorAvailability?> GetAvailability(Guid doctorId, CancellationToken cancellationToken)
+    {
+        return _context.Doctors
+            .AsNoTracking()
+            .Where(d => d.Id == doctorId)
+            .Select(d => new DoctorAvailability(
+                d.Id,
+                d.IsActive))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task Add(NewDoctor doctor, CancellationToken cancellationToken)
     {
         await _context.Doctors.AddAsync(new Doctor

@@ -76,4 +76,47 @@ public class AppointmentRepository : IAppointmentRepository
             startsAt < a.EndsAt,
             cancellationToken);
     }
+
+    public  Task<AppointmentSnapshot?> GetSnapshot(Guid appointmentId, CancellationToken cancellationToken)
+    {
+        return _context.Appointments
+            .AsNoTracking()
+            .Where(a => a.Id == appointmentId)
+            .Select(a => new AppointmentSnapshot(
+                a.Id,
+                a.PatientId,
+                a.DoctorId,
+                a.StartsAt,
+                a.EndsAt,
+                (AppointmentState)a.Status))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<bool> SetStatus(Guid appointmentId, AppointmentState expectedStatus, AppointmentState status, string? cancellationReason,
+        CancellationToken cancellationToken)
+    {
+        var appointment =
+            await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId, cancellationToken);
+
+        if (appointment is null) return false;
+
+        if ((AppointmentState)appointment.Status != expectedStatus) return false;
+        
+        appointment.Status = MapStatus(status);
+        appointment.CancellationReason = cancellationReason;
+        
+        return true;
+    }
+
+    private static AppointmentStatus MapStatus(AppointmentState state)
+    {
+        return state switch
+        {
+            AppointmentState.Requested => AppointmentStatus.Requested,
+            AppointmentState.Confirmed => AppointmentStatus.Confrimed,
+            AppointmentState.Cancelled => AppointmentStatus.Cancelled,
+            AppointmentState.Completed => AppointmentStatus.Completed,
+            _ => throw new ArgumentOutOfRangeException(nameof(state))
+        };
+    }
 }

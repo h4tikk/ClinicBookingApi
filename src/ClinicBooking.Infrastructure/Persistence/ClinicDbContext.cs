@@ -18,23 +18,24 @@ public class ClinicDbContext : DbContext
         modelBuilder.Entity<Patient>(builder =>
         {
             builder.HasKey(p => p.Id);
-            builder.Property(p => p.FullName).HasMaxLength(200);
-            builder.Property(p => p.Email).HasMaxLength(50);
+            builder.Property(p => p.FullName).HasMaxLength(200).IsRequired();
+            builder.Property(p => p.Email).HasMaxLength(50).IsRequired();
             builder.HasIndex(p => p.Email).IsUnique();
         });
 
         modelBuilder.Entity<Specialty>(builder =>
         {
             builder.HasKey(s => s.Id);
-            builder.Property(s => s.Name).HasMaxLength(100);
+            builder.Property(s => s.Name).HasMaxLength(100).IsRequired();
             builder.HasIndex(s => s.Name).IsUnique();
         });
 
         modelBuilder.Entity<Doctor>(builder =>
         {
            builder.HasKey(d => d.Id);
-           builder.Property(d => d.FullName).HasMaxLength(200);
-           builder.HasOne(d => d.Specialty).WithMany().HasForeignKey(d => d.SpecialtyId);
+           builder.Property(d => d.FullName).HasMaxLength(200).IsRequired();
+           builder.HasOne(d => d.Specialty).WithMany().HasForeignKey(d => d.SpecialtyId)
+               .OnDelete(DeleteBehavior.Restrict);
            builder.HasIndex(d => new {d.SpecialtyId, d.IsActive});
 
         });
@@ -42,12 +43,33 @@ public class ClinicDbContext : DbContext
         modelBuilder.Entity<Appointment>(builder =>
         {
             builder.HasKey(a => a.Id);
-            builder.HasOne(a => a.Patient).WithMany().HasForeignKey(a => a.PatientId);
-            builder.HasOne(a => a.Doctor).WithMany().HasForeignKey(a => a.DoctorId);
-            builder.Property(a => a.Status).HasConversion<string>().HasMaxLength(50);
-            builder.Property(a => a.CancellationReason).HasMaxLength(500);
-            builder.HasIndex(a => new {a.DoctorId, a.StartsAt, a.EndsAt});
-            builder.Property(a => a.RowVersion).IsRowVersion()
+            builder.HasOne(a => a.Patient)
+                .WithMany()
+                .HasForeignKey(a => a.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.HasOne(a => a.Doctor)
+                .WithMany()
+                .HasForeignKey(a => a.DoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.Property(a => a.Status)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+            builder.Property(a => a.CancellationReason)
+                .HasMaxLength(500);
+            builder.HasIndex(a => new
+            {
+                a.DoctorId, 
+                a.StartsAt, 
+                a.EndsAt
+            });
+            builder.HasIndex(a => new
+            {
+                a.PatientId,
+                a.StartsAt
+            });
+            builder.Property(a => a.Version)
+                .IsRowVersion()
                 .HasColumnName("xmin")
                 .HasColumnType("xid");
         });
